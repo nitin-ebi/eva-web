@@ -22,9 +22,44 @@ config.loadModules();
 
 module.exports = {
 
-    runTableTest: function(sectionName, testName, element, elementID, expectedResults, checkFunction) {
-        test.describe(sectionName, function() {
-            test.it(testName, function() {
+    runTableTestNew: function (sectionName, testName, element, elementID, expectedResults, checkFunction) {
+        test.describe(sectionName, function () {
+            test.it(testName, function () {
+                var tableToFind = "//" + element + "[@id='" + elementID + "']";
+                driver.wait(until.elementLocated(By.id(elementID)), config.wait()).then(async function (text) {
+                    var noOfRows = expectedResults.length;
+                    var keyList = Object.keys(expectedResults[0]);
+                    var noOfCols = keyList.length;
+                    var tableData = new Array();
+                    for (rowNo = 1; rowNo <= noOfRows; rowNo++) {
+                        var tableRow = {}
+                        for (colNo = 1; colNo <= noOfCols; colNo++) {
+                            var pathToElement = tableToFind + "//tr[" + rowNo + "]" + "//td[" + colNo + "]";
+                            tableRow[keyList[colNo - 1]] = await driver.findElement(By.xpath(pathToElement)).getText();
+                        }
+                        tableData.push(tableRow);
+                    }
+
+                    for (i = 0; i < expectedResults.length; i++) {
+                        found = false;
+                        for (j = 0; j < tableData.length; j++) {
+                            if (JSON.stringify(expectedResults[i]) === JSON.stringify(tableData[j])) {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            throw JSON.stringify(expectedResults[i]) + 'not found in table'
+                        }
+                    }
+                });
+            });
+        });
+    },
+
+    runTableTest: function (sectionName, testName, element, elementID, expectedResults, checkFunction) {
+        test.describe(sectionName, function () {
+            test.it(testName, function () {
                 var rowIndex = 1;
                 expectedResults.forEach(function(expectedResult) {
                     var colIndex = 1;
@@ -41,7 +76,7 @@ module.exports = {
     checkSection: function(driver, element, elementID, rowIndex, colIndex, expectedValue) {
         var tableToFind = "//" + element + "[@id='" + elementID + "']";
         var pathToElement = tableToFind + "//tr[" + rowIndex + "]" + "//td[" + colIndex + "]";
-        driver.wait(until.elementLocated(By.xpath(pathToElement)), config.wait()).then(function(text) {
+        driver.wait(until.elementLocated(By.id(elementID)), config.wait()).then(function(text) {
             driver.findElement(By.xpath(pathToElement)).getText().then(function(text){
                 assert(text).equalTo(expectedValue);
             });

@@ -39,9 +39,9 @@ test.describe('Variant View - rs exclusive to Accessioning', function() {
     variantView.runTableTest("Variant Information Section", "Variant Information Section has the correct values for attributes",
                 "table", "variant-view-summary", expectedResults, variantView.checkSection);
 
-    expectedResults = [{"ID": "ss1996903386", "Submitter Handle": "DCAR_GENOME PAPER 1393431 SNPS",
+    expectedResults = [{"ID": "ss1996903386", "Submitter Handle": "DCAR_GENOME PAPER 1393431 SNPS", "Assembly": "GCA_001625215.1 (ASM162521v1)",
                         "Chromosome/Contig accession": "CM004278.1", "Chromosome": "1", "Start": "672678", "End": "672678", "Reference": "A",
-                        "Alternate": "C,G,T", "Created Date": "19 May 2016"}
+                        "Alternate": "C", "Created Date": "19 May 2016"}
                       ];
     variantView.runTableTest("Submitted Variant Section", "Submitted Variant Section has the correct values for attributes",
                 "table", "submitted-variant-summary", expectedResults, variantView.checkSection);
@@ -84,11 +84,13 @@ test.describe('Variant View - rs found in both EVA and Accessioning', function()
     variantView.runTableTest("Variant Information Section", "Variant Information Section has the correct values for attributes",
                 "table", "variant-view-summary", expectedResults, variantView.checkSection);
 
-    expectedResults = [{"ID": "ss5227751341", "Submitter Handle": "PRJEB22988", "Chromosome/Contig accession": "CM001952.2", "Chromosome": "11",
-                        "Start": "50921862", "End": "50921862", "Reference": "C", "Alternate": "G", "Created Date": "6 July 2019"},
-                        {"ID": "ss1991442915", "Submitter Handle": "PRJEB7923", "Chromosome/Contig accession": "CM001952.2", "Chromosome": "11",
-                        "Start": "50921862", "End": "50921862", "Reference": "C", "Alternate": "G", "Created Date": "5 May 2016"}
-                      ];
+    expectedResults = [ 
+        {"ID": "ss1991442915", "Submitter Handle": "PRJEB7923", "Assembly": "GCA_000409795.2 (Chlorocebus_sabeus 1.1)", "Chromosome/Contig accession": "CM001952.2",
+        "Chromosome": "11", "Start": "50921862", "End": "50921862", "Reference": "C", "Alternate": "G", "Created Date": "5 May 2016"},
+        {"ID": "ss5227751341", "Submitter Handle": "PRJEB22988", "Assembly": "GCA_000409795.2 (Chlorocebus_sabeus 1.1)", "Chromosome/Contig accession": "CM001952.2",
+        "Chromosome": "11", "Start": "50921862", "End": "50921862", "Reference": "C", "Alternate": "G", "Created Date": "6 July 2019"},
+        {"ID": "ss7406861678", "Submitter Handle": "PRJEB22989", "Assembly": "GCA_000409795.2 (Chlorocebus_sabeus 1.1)", "Chromosome/Contig accession": "CM001952.2",
+        "Chromosome": "11", "Start": "50921862", "End": "50921862", "Reference": "C", "Alternate": "G", "Created Date": "17 July 2021"}];
     variantView.runTableTest("Submitted Variant Section", "Submitted Variant Section has the correct values for attributes",
                 "table", "submitted-variant-summary", expectedResults, variantView.checkSection);
 });
@@ -149,7 +151,7 @@ test.describe('Variant View - ss by position', function() {
         config.shutdownDriver(driver);
     });
 
-    var expectedResults = [{"Organism": "Human", "Assembly": "GCA_000001405.14 (GRCh37.p13)", "Submitter Handle": "", "Chromosome/Contig accession": "",
+    var expectedResults = [{"Organism": "Human", "Assembly": "", "Submitter Handle": "", "Chromosome/Contig accession": "",
                             "Chromosome":"1", "Start": "3000017", "End": "3000017", "Reference": "C", "Alternate": "T", "ID":"ss1289423512",
                             "Type": "SNV", "Allele frequencies / genotypes available?": "Yes",
                             "Alleles match reference assembly?": "", "Passed allele checks?": "",
@@ -235,4 +237,45 @@ test.describe('Variant View - Human RS exclusive to accessioning', function() {
     expectedResults = [];
     variantView.runTableTest("Submitted Variant Section", "Submitted Variant Section has the correct values for attributes",
                 "table", "submitted-variant-summary", expectedResults, variantView.checkSection);
+});
+
+test.describe('Variant View - RS with multiple entires', function() {
+    var driver;
+    test.before(function() {
+        driver = config.initDriver(config.browser());
+        driver.get(config.baseURL()+'?variant&accessionID=rs105032341');
+    });
+
+    test.after(function() {
+        config.shutdownDriver(driver);
+    });
+
+    var expectedResults = [{"Organism": "rat", "Assembly": "GCA_015227675.2 (mRatBN7.2)",
+                            "Chromosome/Contig accession": "CM026974.1", "Chromosome": "1", "Start": "150694351",
+                            "ID": "rs105032341", "Type": "SNV", "Created Date": "1 December 2021"},
+                            {"Organism": "rat", "Assembly": "GCA_000001895.4 (Rnor_6.0)",
+                            "Chromosome/Contig accession": "CM000072.5", "Chromosome": "1", "Start": "161315554",
+                            "ID": "rs105032341", "Type": "SNV", "Created Date": "25 May 2010"},
+                            {"Organism": "rat", "Assembly": "GCA_000002265.1 (Rn_Celera)",
+                            "Chromosome/Contig accession": "CM000231.2", "Chromosome": "1", "Start": "148800140",
+                            "ID": "rs105032341", "Type": "SNV", "Created Date": "25 May 2010"}
+                        ];
+    variantView.runTableTestNew("Variant Information Section", "Variant Information Section has the correct values for attributes",
+                "table", "variant-view-summary", expectedResults);
+
+    expectedResults = [{"ID": "ss93228403", "Study": "ENSEMBL_RAT_COMPUTATIONAL_CELERA", "Assembly": "GCA_015227675.2 (mRatBN7.2)",
+                        "Chromosome/Contig accession": "CM026974.1", "Chromosome": "1", "Start": "150694351",
+                        "End": "150694351", "Reference": "G", "Alternate": "C", "Created Date": "3 January 2010"},
+                        {"ID": "ss7306907838", "Study": "PRJEB42012", "Assembly": "GCA_015227675.2 (mRatBN7.2)",
+                        "Chromosome/Contig accession": "CM026974.1", "Chromosome": "1", "Start": "150694351",
+                        "End": "150694351", "Reference": "G", "Alternate": "C", "Created Date": "8 February 2021"},
+                        {"ID": "ss93228403", "Study": "ENSEMBL_RAT_COMPUTATIONAL_CELERA", "Assembly": "GCA_000001895.4 (Rnor_6.0)",
+                        "Chromosome/Contig accession": "CM000072.5", "Chromosome": "1", "Start": "161315554",
+                        "End": "161315554", "Reference": "G", "Alternate": "C", "Created Date": "3 January 2010"},
+                        {"ID": "ss93228403", "Study": "ENSEMBL_RAT_COMPUTATIONAL_CELERA", "Assembly": "GCA_000002265.1 (Rn_Celera)",
+                        "Chromosome/Contig accession": "CM000231.2", "Chromosome": "1", "Start": "148800140",
+                        "End": "148800140", "Reference": "G", "Alternate": "C", "Created Date": "3 January 2010"}
+                      ];
+    variantView.runTableTestNew("Submitted Variant Section", "Submitted Variant Section has the correct values for attributes",
+                "table", "submitted-variant-summary", expectedResults);
 });

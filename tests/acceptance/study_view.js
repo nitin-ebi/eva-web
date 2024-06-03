@@ -130,10 +130,10 @@ function evaCheckSummaryTable(driver){
             assert(text).matches(regExp);
         });
         driver.findElement(By.id("ena_link")).getAttribute('href').then(function(text){
-            assert(text).matches(/http:\/\/www.ebi.ac.uk\/ena\/data\/view\/PRJ[A-Z0-9]+$/);
+            assert(text).matches(/https:\/\/www.ebi.ac.uk\/ena\/browser\/view\/PRJ[A-Z0-9]+$/);
         });
         driver.findElement(By.id("eva_link")).getAttribute('href').then(function(text){
-            assert(text).matches(/ftp:\/\/ftp.ebi.ac.uk\/pub\/databases\/eva\/PRJ[A-Z0-9]+$/);
+            assert(text).matches(/https:\/\/ftp.ebi.ac.uk\/pub\/databases\/eva\/PRJ[A-Z0-9]+$/);
         },function(err) {});
     });
 
@@ -183,8 +183,8 @@ function dgvaCheckSummaryTable(driver){
 }
 
 function checkPublications(driver){
-    driver.wait(until.elementLocated(By.className("pubmed-id")), config.wait()).then(function(text) {
-       driver.findElement(By.className('pubmed-id')).getText().then(function(text){
+    driver.wait(until.elementLocated(By.className("publication-id")), config.wait()).then(function(text) {
+       driver.findElement(By.className('publication-id')).getText().then(function(text){
            var regExp = /^-$|^\w+/;
            if(text != '-'){
                text = text.split("\n");

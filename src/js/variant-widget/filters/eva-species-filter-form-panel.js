@@ -94,8 +94,7 @@ SpeciesFilterFormPanel.prototype = {
 
         var speciesStore = Ext.create('Ext.data.Store', {
             model: 'SpeciesListModel',
-            data: _.uniq(deDuplicatedSpeciesList(_this.speciesList),
-                            function(item) {return item.assemblyAccession;}),
+            data: deDuplicatedSpeciesList(_this.speciesList),
             sorters: [
                 {
                     property: 'taxonomyEvaName',
@@ -129,6 +128,7 @@ SpeciesFilterFormPanel.prototype = {
         });
 
         return Ext.create('Ext.form.Panel', {
+            id: this.id,
             bodyPadding: "5",
             margin: "0 0 5 0",
             buttonAlign: 'center',

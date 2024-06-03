@@ -45,7 +45,7 @@ EvaVariantView.prototype = {
     },
 
     getChromosomeNumberForAccession: function(chromosomeAccession, lineLimit) {
-          var ENA_TEXT_API_URL = "https://www.ebi.ac.uk/ena/browser/api/text/" + chromosomeAccession + "?lineLimit=" + lineLimit + "&annotationOnly=true";
+          var ENA_TEXT_API_URL = ENA_TEXT_API_SERVICE + "/" + chromosomeAccession + "?lineLimit=" + lineLimit + "&annotationOnly=true";
           var response = EvaManager.getAPICallResult(ENA_TEXT_API_URL, 'text', this.contigAccessionNotResolvedHandler.bind(this));
           var responseLines = response.split("\n");
           var numLines = responseLines.length;
@@ -118,16 +118,27 @@ EvaVariantView.prototype = {
     },
 
     getAssemblyNameForAccession: function(assemblyAccession) {
-        var assemblyENAXmlUrl = ENA_ASSEMBLY_LOOKUP_SERVICE + "/" + assemblyAccession + "?display=xml"
+        if(this.assemblyNameMap == undefined){
+            this.assemblyNameMap = {}
+        }
+        // Cache the assembly name so it's not called for each RS and/or SS
+        if (assemblyAccession in this.assemblyNameMap) {
+            return this.assemblyNameMap[assemblyAccession];
+        }
+
+        // Default to assembly accession alone
+        this.assemblyNameMap[assemblyAccession] = assemblyAccession;
+
+        var assemblyENAXmlUrl = ENA_XML_API_SERVICE + "/" + assemblyAccession + "?display=xml"
         var xmlResult = EvaManager.getAPICallResult(assemblyENAXmlUrl, 'xml', this.assemblyAccessionNotResolvedHandler.bind(this));
 
         if (xmlResult) {
             var assemblyNameTagValue = xmlResult.evaluate('//ASSEMBLY/NAME', xmlResult, null, XPathResult.STRING_TYPE, null);
             if (assemblyNameTagValue) {
-                return assemblyAccession + " (" + assemblyNameTagValue.stringValue + ")";
+                this.assemblyNameMap[assemblyAccession] = assemblyAccession + " (" + assemblyNameTagValue.stringValue + ")";
             }
         }
-        return assemblyAccession;
+        return this.assemblyNameMap[assemblyAccession];
     },
 
     getAssemblyLink: function(assembly) {
@@ -135,7 +146,7 @@ EvaVariantView.prototype = {
             assembly = assembly.toUpperCase();
             var assemblyLookupService = "";
             if (assembly.startsWith("GCA")) {
-                assemblyLookupService = ENA_ASSEMBLY_LOOKUP_SERVICE;
+                assemblyLookupService = ENA_VIEW_LINK_SERVICE;
             } else if (assembly.startsWith("GCF")) {
                 assemblyLookupService = NCBI_ASSEMBLY_LOOKUP_SERVICE;
             }
@@ -198,12 +209,12 @@ EvaVariantView.prototype = {
     // For a given RS ID, get associated SS ID
     getAssociatedSSIDsFromAccessioningService: function(accessionCategory, accessionID) {
         var response = this.getAccessioningWebServiceResponse(accessionCategory, accessionID.substring(2) + "/submitted");
-        return response?response:[];
+        return response ? _.sortBy(response, 'accession') : [];
     },
 
     // Calculate end coordinate for a variant given start, ref and alt
-    getVariantEndCoordinate: function(variantStartCoordinate, referenceAllele, alternateAllele) {
-        return variantStartCoordinate + Math.max(referenceAllele.length, alternateAllele.length) - 1;
+    getVariantEndCoordinate: function(variantStartCoordinate, referenceAllele) {
+        return referenceAllele.length ? variantStartCoordinate + referenceAllele.length - 1 : variantStartCoordinate;
     },
 
     // Get formatted date from a JSON date
@@ -376,8 +387,7 @@ EvaVariantView.prototype = {
                 variantInfo.reference = response.data.referenceAllele;
                 if (response.data.alternateAllele !== undefined && response.data.alternateAllele !== null) {
                     variantInfo.alternate = response.data.alternateAllele;
-                    variantInfo.end = _this.getVariantEndCoordinate(variantInfo.start, response.data.referenceAllele,
-                                                                response.data.alternateAllele);
+                    variantInfo.end = _this.getVariantEndCoordinate(response.data.start, response.data.referenceAllele);
                     variantInfo.associatedRSID = response.data.clusteredVariantAccession;
                     variantInfo.associatedRSID = variantInfo.associatedRSID ? "rs" + variantInfo.associatedRSID : '';
                 }
@@ -439,6 +449,7 @@ EvaVariantView.prototype = {
             params: queryParams,
             async: false
         });
+
         try {
             var _this = this;
             var results = webServiceResponse.response[0].result;
@@ -524,11 +535,11 @@ EvaVariantView.prototype = {
                             _this.addAssociatedSSID("ss" + ssIDInfo.accession + "_" + ssIDInfo.data.contig,
                             {"ID": "ss" + ssIDInfo.accession,
                             "Study": _this.getProjectAccessionAnchor(ssIDInfo.data.projectAccession),
+                            "Assembly": _this.getAssemblyLink(ssIDInfo.data.referenceSequenceAccession),
                             "Chromosome/Contig accession": ssIDInfo.data.contig,
                             "Chromosome": _this.getChromosomeNumberForAccessionWithRetries(ssIDInfo.data.contig),
                             "Start": ssIDInfo.data.start,
-                            "End": _this.getVariantEndCoordinate(ssIDInfo.data.start,
-                                                                ssIDInfo.data.referenceAllele, ssIDInfo.data.alternateAllele),
+                            "End": _this.getVariantEndCoordinate(ssIDInfo.data.start, ssIDInfo.data.referenceAllele),
                             "Reference": ssIDInfo.data.referenceAllele,
                             "Alternate": [ssIDInfo.data.alternateAllele],
                             "Created Date": _this.getFormattedDate(ssIDInfo.data.createdDate)});
@@ -621,7 +632,6 @@ EvaVariantView.prototype = {
         this.studiesList = (_.contains(this.EVASpeciesList, this.species) ? this.getStudiesList(this.species) : []);
         this.assemblyAccession = this.assemblyAccession? this.assemblyAccession:
                                                          this.getCurrentAssembly(this.species, this.speciesList);
-        this.assemblyLink = this.getAssemblyLink(this.assemblyAccession);
 
         this.allAccessionIDs = _.map(decodeURI(this.accessionID).split(","), function trim(x) {return x.trim();});
         this.allVariants = Array();
@@ -665,7 +675,8 @@ EvaVariantView.prototype = {
             accessioningServiceData.assemblyAccession :
             accessioningServiceData.referenceSequenceAccession;
 
-        var speciesInfo = _.findWhere(getAccessionedSpeciesList(), {assemblyAccession : this.assemblyAccession});
+        var speciesInfo = _.findWhere(getAccessionedSpeciesList(),
+            {assemblyAccession : this.assemblyAccession, taxonomyId: accessioningServiceData.taxonomyAccession});
         this.species = speciesInfo.taxonomyCode + "_" + speciesInfo.assemblyCode;
     },
 
@@ -681,6 +692,7 @@ EvaVariantView.prototype = {
     storeVariantInfo: function() {
         this.associatedSSIDs = {};
         this.chromosomeContigMap = {};
+        this.assemblyNameMap = {};
         this.variantIsDeprecated = false;
 
         if (this.accessionID) {
@@ -976,7 +988,7 @@ EvaVariantView.prototype = {
         if (this.accessionCategory === "clustered-variants") {
             summaryData = summaryData.map(function(x) {return _.omit(x, [summaryDisplayFields.submitterHandle, summaryDisplayFields.end, summaryDisplayFields.reference, summaryDisplayFields.alternate,
                                                           summaryDisplayFields.evidence, summaryDisplayFields.assemblyMatch,
-                                                          summaryDisplayFields.allelesMatch, summaryDisplayFields.validated]);}).slice(0,1);
+                                                          summaryDisplayFields.allelesMatch, summaryDisplayFields.validated]);});
             if (! this.variantIsDeprecated && !_.isEmpty(this.associatedSSIDs)) {  // ssID data are not available for deprecated rsIDs
                 submitterInfoHeading = '<h4 class="variant-view-h4">Submitted Variants</b></h4><div class="row"><div class="col-md-8">';
                 var associatedSSData = this.associatedSSIDs;

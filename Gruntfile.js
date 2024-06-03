@@ -15,10 +15,10 @@ module.exports = function (grunt) {
         // Metadata.
         meta: {
             version: {
-                eva: '4.4.5'
+                eva: '4.4.13'
             },
             submissionTemplate: {
-                version: 'V1.1.4'
+                version: 'V1.1.5'
             }
         },
         build: {
@@ -381,7 +381,17 @@ module.exports = function (grunt) {
                     clearRequireCache: false,
                     timeout:1500000
                 },
-                src: ['tests/acceptance/*.js']
+                src: [
+                        'tests/acceptance/all_page.js',
+                        'tests/acceptance/dbSNP_import.js',
+                        'tests/acceptance/home_page.js',
+                        'tests/acceptance/multi_variant_view.js',
+                        'tests/acceptance/rs_release.js',
+                        'tests/acceptance/study_browser.js',
+                        'tests/acceptance/study_view.js',
+                        'tests/acceptance/variant_browser.js',
+                        'tests/acceptance/variant_view.js'
+                     ]
             }
         },
         mocha_phantomjs: {
@@ -410,7 +420,8 @@ module.exports = function (grunt) {
             install: {
                 options: {
                     targetDir: './tmp',
-                    install: true
+                    install: true,
+                    copy: true
                 }
             }
         }
@@ -446,7 +457,7 @@ module.exports = function (grunt) {
     //selenium with mocha
     grunt.registerTask('acceptanceTest', ['mochaTest:acceptanceTest']);
 
-    // unit tests wirh mocha_phantomjs to run from command line
+    // unit tests with mocha_phantomjs to run from command line
     grunt.registerTask('unitTest', ['mocha_phantomjs:unitTest']);
 
     //run test
@@ -461,8 +472,7 @@ module.exports = function (grunt) {
     //start http server
     grunt.registerTask('start-server', ['exec:startServer']);
 
-    //default build website.
-    grunt.registerTask('default', [
+    grunt.registerTask('run-all-tests', [
         'start-server',
         'config:' + envTarget,
         'replace-config',
@@ -479,5 +489,23 @@ module.exports = function (grunt) {
         'imagemin',
         'unitTest',
         'runAcceptanceTest'
+    ]);
+
+    //default build website.
+    grunt.registerTask('default', [
+        'start-server',
+        'config:' + envTarget,
+        'replace-config',
+        'bower-install',
+        'hub:genomeViewer',
+        'clean:eva',
+        'concat',
+        'uglify',
+        'copy:eva',
+        'cssmin',
+        'htmlbuild:eva',
+        'replace-html',
+        'minifyHtml',
+        'imagemin'
     ]);
 };
